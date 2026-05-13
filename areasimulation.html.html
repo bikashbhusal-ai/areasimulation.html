@@ -1,0 +1,1378 @@
+<!DOCTYPE html>
+<html lang="ne">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>Net of Mathematical Shape</title>
+<script src="https://cdn.tailwindcss.com"></script>
+<script src="https://cdnjs.cloudflare.com/ajax/libs/three.js/r128/three.min.js"></script>
+<link href="https://fonts.googleapis.com/css2?family=Space+Grotesk:wght@300;400;500;600;700&family=Noto+Sans+Devanagari:wght@300;400;500;600;700&display=swap" rel="stylesheet">
+<style>
+  :root {
+    --blue-glow: #3b82f6;
+    --orange: #f97316;
+    --bg-dark: #0a0f1e;
+    --bg-card: rgba(255,255,255,0.04);
+    --border: rgba(255,255,255,0.08);
+    --text-primary: #f1f5f9;
+    --text-secondary: #94a3b8;
+  }
+
+  * { box-sizing: border-box; margin: 0; padding: 0; }
+
+  body {
+    font-family: 'Space Grotesk', 'Noto Sans Devanagari', sans-serif;
+    background: var(--bg-dark);
+    color: var(--text-primary);
+    min-height: 100vh;
+    overflow-x: hidden;
+  }
+
+  /* Animated background */
+  body::before {
+    content: '';
+    position: fixed;
+    inset: 0;
+    background:
+      radial-gradient(ellipse 80% 50% at 20% 20%, rgba(59,130,246,0.08) 0%, transparent 60%),
+      radial-gradient(ellipse 60% 40% at 80% 80%, rgba(249,115,22,0.06) 0%, transparent 60%),
+      radial-gradient(ellipse 40% 30% at 60% 10%, rgba(139,92,246,0.05) 0%, transparent 50%);
+    pointer-events: none;
+    z-index: 0;
+  }
+
+  /* Grid overlay */
+  body::after {
+    content: '';
+    position: fixed;
+    inset: 0;
+    background-image:
+      linear-gradient(rgba(255,255,255,0.015) 1px, transparent 1px),
+      linear-gradient(90deg, rgba(255,255,255,0.015) 1px, transparent 1px);
+    background-size: 60px 60px;
+    pointer-events: none;
+    z-index: 0;
+  }
+
+  .relative-z { position: relative; z-index: 1; }
+
+  /* Header */
+  .header {
+    text-align: center;
+    padding: 28px 20px 20px;
+    position: relative;
+    z-index: 10;
+  }
+
+  .header-title {
+    font-size: clamp(1.4rem, 3vw, 2rem);
+    font-weight: 700;
+    letter-spacing: -0.02em;
+    background: linear-gradient(135deg, #ffffff 0%, #93c5fd 50%, #f97316 100%);
+    -webkit-background-clip: text;
+    -webkit-text-fill-color: transparent;
+    background-clip: text;
+    margin-bottom: 4px;
+  }
+
+  .header-sub {
+    font-size: 0.78rem;
+    color: var(--text-secondary);
+    letter-spacing: 0.08em;
+    text-transform: uppercase;
+  }
+
+  /* Navigation tabs */
+  .nav-bar {
+    display: flex;
+    justify-content: center;
+    gap: 8px;
+    padding: 0 20px 20px;
+    flex-wrap: wrap;
+    position: relative;
+    z-index: 10;
+  }
+
+  .tab-btn {
+    padding: 9px 18px;
+    border-radius: 100px;
+    border: 1px solid var(--border);
+    background: var(--bg-card);
+    color: var(--text-secondary);
+    font-size: 0.82rem;
+    font-family: 'Noto Sans Devanagari', 'Space Grotesk', sans-serif;
+    font-weight: 500;
+    cursor: pointer;
+    transition: all 0.25s cubic-bezier(0.4, 0, 0.2, 1);
+    backdrop-filter: blur(10px);
+    white-space: nowrap;
+    position: relative;
+    overflow: hidden;
+  }
+
+  .tab-btn::before {
+    content: '';
+    position: absolute;
+    inset: 0;
+    border-radius: 100px;
+    background: linear-gradient(135deg, rgba(59,130,246,0.15), rgba(99,102,241,0.1));
+    opacity: 0;
+    transition: opacity 0.25s;
+  }
+
+  .tab-btn:hover::before { opacity: 1; }
+  .tab-btn:hover { color: #93c5fd; border-color: rgba(59,130,246,0.4); transform: translateY(-1px); }
+
+  .tab-btn.active {
+    background: linear-gradient(135deg, rgba(59,130,246,0.25), rgba(99,102,241,0.2));
+    border-color: rgba(59,130,246,0.6);
+    color: #93c5fd;
+    box-shadow: 0 0 20px rgba(59,130,246,0.3), 0 0 40px rgba(59,130,246,0.1), inset 0 1px 0 rgba(255,255,255,0.1);
+  }
+
+  .tab-btn.active::after {
+    content: '';
+    position: absolute;
+    bottom: 0;
+    left: 50%;
+    transform: translateX(-50%);
+    width: 40%;
+    height: 2px;
+    background: linear-gradient(90deg, transparent, #3b82f6, transparent);
+    border-radius: 2px;
+  }
+
+  /* Main layout */
+  .main-layout {
+    display: grid;
+    grid-template-columns: 60% 40%;
+    gap: 16px;
+    padding: 0 16px 20px;
+    max-width: 1600px;
+    margin: 0 auto;
+    position: relative;
+    z-index: 1;
+  }
+
+  @media (max-width: 900px) {
+    .main-layout { grid-template-columns: 1fr; }
+  }
+
+  /* Glass card */
+  .glass-card {
+    background: rgba(255,255,255,0.03);
+    border: 1px solid var(--border);
+    border-radius: 20px;
+    backdrop-filter: blur(20px);
+    overflow: hidden;
+    transition: border-color 0.3s;
+  }
+
+  .glass-card:hover { border-color: rgba(255,255,255,0.12); }
+
+  /* Left panel */
+  .left-panel {
+    display: flex;
+    flex-direction: column;
+  }
+
+  .panel-header {
+    display: flex;
+    align-items: center;
+    justify-content: space-between;
+    padding: 16px 20px;
+    border-bottom: 1px solid var(--border);
+  }
+
+  .panel-label {
+    font-size: 0.72rem;
+    font-weight: 600;
+    letter-spacing: 0.12em;
+    text-transform: uppercase;
+    color: var(--text-secondary);
+  }
+
+  .live-badge {
+    display: flex;
+    align-items: center;
+    gap: 6px;
+    font-size: 0.68rem;
+    color: #4ade80;
+    font-weight: 500;
+  }
+
+  .live-dot {
+    width: 6px; height: 6px;
+    background: #4ade80;
+    border-radius: 50%;
+    animation: pulse-green 2s infinite;
+  }
+
+  @keyframes pulse-green {
+    0%, 100% { box-shadow: 0 0 0 0 rgba(74,222,128,0.4); }
+    50% { box-shadow: 0 0 0 4px rgba(74,222,128,0); }
+  }
+
+  /* Three.js canvas container */
+  #canvas-container {
+    width: 100%;
+    height: 380px;
+    position: relative;
+    cursor: grab;
+    background: radial-gradient(ellipse at center, rgba(59,130,246,0.05) 0%, transparent 70%);
+  }
+
+  #canvas-container:active { cursor: grabbing; }
+  #canvas-container canvas { display: block; }
+
+  /* Shape name overlay */
+  .shape-overlay {
+    position: absolute;
+    top: 12px;
+    left: 16px;
+    background: rgba(0,0,0,0.5);
+    border: 1px solid var(--border);
+    border-radius: 8px;
+    padding: 6px 12px;
+    font-size: 0.75rem;
+    color: var(--text-secondary);
+    backdrop-filter: blur(10px);
+  }
+
+  /* Control buttons */
+  .controls {
+    padding: 14px 20px;
+    display: flex;
+    gap: 10px;
+    border-top: 1px solid var(--border);
+    flex-wrap: wrap;
+  }
+
+  .ctrl-btn {
+    flex: 1;
+    min-width: 100px;
+    padding: 10px 14px;
+    border-radius: 12px;
+    border: 1px solid var(--border);
+    background: var(--bg-card);
+    color: var(--text-primary);
+    font-family: 'Noto Sans Devanagari', sans-serif;
+    font-size: 0.78rem;
+    font-weight: 500;
+    cursor: pointer;
+    transition: all 0.2s;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    gap: 6px;
+    backdrop-filter: blur(10px);
+  }
+
+  .ctrl-btn:hover {
+    background: rgba(59,130,246,0.15);
+    border-color: rgba(59,130,246,0.4);
+    transform: translateY(-2px);
+    box-shadow: 0 8px 20px rgba(59,130,246,0.15);
+  }
+
+  .ctrl-btn.unfold {
+    background: linear-gradient(135deg, rgba(249,115,22,0.2), rgba(239,68,68,0.15));
+    border-color: rgba(249,115,22,0.4);
+    color: #fb923c;
+  }
+
+  .ctrl-btn.unfold:hover {
+    background: linear-gradient(135deg, rgba(249,115,22,0.3), rgba(239,68,68,0.2));
+    box-shadow: 0 8px 20px rgba(249,115,22,0.2);
+  }
+
+  .ctrl-btn.fold {
+    background: linear-gradient(135deg, rgba(59,130,246,0.2), rgba(99,102,241,0.15));
+    border-color: rgba(59,130,246,0.4);
+    color: #60a5fa;
+  }
+
+  .ctrl-btn.reset {
+    flex: 0.5;
+    background: rgba(255,255,255,0.04);
+    color: var(--text-secondary);
+  }
+
+  /* Right panel */
+  .right-panel { display: flex; flex-direction: column; gap: 12px; }
+
+  /* Info section */
+  .info-header {
+    padding: 18px 20px 14px;
+    border-bottom: 1px solid var(--border);
+  }
+
+  .shape-title {
+    font-size: 1.3rem;
+    font-weight: 700;
+    font-family: 'Noto Sans Devanagari', sans-serif;
+    background: linear-gradient(135deg, #f1f5f9, #93c5fd);
+    -webkit-background-clip: text;
+    -webkit-text-fill-color: transparent;
+    background-clip: text;
+    margin-bottom: 4px;
+  }
+
+  .shape-subtitle {
+    font-size: 0.72rem;
+    color: var(--text-secondary);
+    letter-spacing: 0.06em;
+  }
+
+  /* Stat cards */
+  .stat-grid {
+    display: grid;
+    grid-template-columns: repeat(3, 1fr);
+    gap: 10px;
+    padding: 14px 20px;
+  }
+
+  .stat-card {
+    background: rgba(255,255,255,0.03);
+    border: 1px solid var(--border);
+    border-radius: 14px;
+    padding: 14px 10px;
+    text-align: center;
+    transition: all 0.3s;
+    position: relative;
+    overflow: hidden;
+  }
+
+  .stat-card::before {
+    content: '';
+    position: absolute;
+    top: 0; left: 0; right: 0;
+    height: 2px;
+    background: linear-gradient(90deg, transparent, var(--accent-color), transparent);
+    opacity: 0;
+    transition: opacity 0.3s;
+  }
+
+  .stat-card:hover { transform: translateY(-3px); border-color: rgba(255,255,255,0.15); }
+  .stat-card:hover::before { opacity: 1; }
+
+  .stat-card.faces { --accent-color: #3b82f6; }
+  .stat-card.edges { --accent-color: #f97316; }
+  .stat-card.vertices { --accent-color: #a855f7; }
+
+  .stat-icon { font-size: 1.3rem; margin-bottom: 6px; }
+  .stat-value {
+    font-size: 1.6rem;
+    font-weight: 700;
+    line-height: 1;
+    margin-bottom: 4px;
+  }
+
+  .stat-card.faces .stat-value { color: #60a5fa; }
+  .stat-card.edges .stat-value { color: #fb923c; }
+  .stat-card.vertices .stat-value { color: #c084fc; }
+
+  .stat-label {
+    font-size: 0.65rem;
+    font-weight: 600;
+    letter-spacing: 0.1em;
+    text-transform: uppercase;
+    color: var(--text-secondary);
+  }
+
+  /* Net visualization */
+  .net-card {
+    flex: 1;
+    display: flex;
+    flex-direction: column;
+  }
+
+  .net-header {
+    padding: 12px 20px;
+    border-bottom: 1px solid var(--border);
+    display: flex;
+    align-items: center;
+    justify-content: space-between;
+  }
+
+  .net-label {
+    font-size: 0.7rem;
+    font-weight: 600;
+    letter-spacing: 0.12em;
+    text-transform: uppercase;
+    color: var(--text-secondary);
+    display: flex;
+    align-items: center;
+    gap: 8px;
+  }
+
+  .net-label::before {
+    content: '';
+    width: 8px; height: 8px;
+    background: var(--orange);
+    border-radius: 2px;
+    transform: rotate(45deg);
+  }
+
+  .net-container {
+    flex: 1;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    padding: 16px;
+    min-height: 220px;
+    background: radial-gradient(ellipse at center, rgba(249,115,22,0.04) 0%, transparent 70%);
+    position: relative;
+  }
+
+  #net-svg {
+    max-width: 100%;
+    max-height: 100%;
+    filter: drop-shadow(0 0 8px rgba(249,115,22,0.2));
+    transition: all 0.5s cubic-bezier(0.4, 0, 0.2, 1);
+  }
+
+  .net-container:hover #net-svg {
+    filter: drop-shadow(0 0 15px rgba(249,115,22,0.4));
+  }
+
+  /* Fold indicator */
+  .fold-indicator {
+    padding: 8px 20px 14px;
+    display: flex;
+    align-items: center;
+    gap: 8px;
+    font-size: 0.68rem;
+    color: var(--text-secondary);
+  }
+
+  .fold-line {
+    flex: 1;
+    height: 1px;
+    background: repeating-linear-gradient(90deg, rgba(249,115,22,0.4) 0, rgba(249,115,22,0.4) 6px, transparent 6px, transparent 10px);
+  }
+
+  /* Number counter animation */
+  @keyframes countUp {
+    from { opacity: 0; transform: translateY(10px); }
+    to { opacity: 1; transform: translateY(0); }
+  }
+
+  .stat-value { animation: countUp 0.5s ease; }
+
+  /* Tab active pulse */
+  @keyframes tab-pulse {
+    0%, 100% { box-shadow: 0 0 20px rgba(59,130,246,0.3), 0 0 40px rgba(59,130,246,0.1); }
+    50% { box-shadow: 0 0 30px rgba(59,130,246,0.5), 0 0 60px rgba(59,130,246,0.15); }
+  }
+
+  .tab-btn.active { animation: tab-pulse 2s infinite; }
+
+  /* SVG net styles */
+  .net-face {
+    fill: rgba(249,115,22,0.06);
+    stroke: #f97316;
+    stroke-width: 1.5;
+    transition: all 0.3s;
+  }
+
+  .net-face:hover {
+    fill: rgba(249,115,22,0.15);
+    stroke: #fb923c;
+    stroke-width: 2;
+  }
+
+  .net-fold {
+    stroke: rgba(249,115,22,0.4);
+    stroke-width: 1;
+    stroke-dasharray: 5,4;
+    fill: none;
+  }
+
+  .net-label-text {
+    font-size: 9px;
+    fill: rgba(249,115,22,0.7);
+    font-family: 'Space Grotesk', sans-serif;
+    font-weight: 500;
+  }
+
+  /* Formula display */
+  .formula-card {
+    margin: 0 20px 14px;
+    background: rgba(59,130,246,0.06);
+    border: 1px solid rgba(59,130,246,0.2);
+    border-radius: 12px;
+    padding: 12px 16px;
+  }
+
+  .formula-title {
+    font-size: 0.65rem;
+    font-weight: 600;
+    letter-spacing: 0.1em;
+    text-transform: uppercase;
+    color: #60a5fa;
+    margin-bottom: 6px;
+  }
+
+  .formula-text {
+    font-size: 0.8rem;
+    color: var(--text-secondary);
+    line-height: 1.6;
+  }
+
+  .formula-text span {
+    color: #93c5fd;
+    font-weight: 600;
+  }
+
+  /* Transition overlay */
+  .transition-overlay {
+    position: absolute;
+    inset: 0;
+    background: rgba(10,15,30,0.8);
+    backdrop-filter: blur(4px);
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    opacity: 0;
+    pointer-events: none;
+    transition: opacity 0.3s;
+    z-index: 10;
+    border-radius: 20px;
+  }
+
+  .transition-overlay.show { opacity: 1; pointer-events: all; }
+
+  .spinner {
+    width: 40px; height: 40px;
+    border: 2px solid rgba(59,130,246,0.2);
+    border-top-color: #3b82f6;
+    border-radius: 50%;
+    animation: spin 0.8s linear infinite;
+  }
+
+  @keyframes spin { to { transform: rotate(360deg); } }
+
+  /* Scrollbar */
+  ::-webkit-scrollbar { width: 4px; }
+  ::-webkit-scrollbar-track { background: transparent; }
+  ::-webkit-scrollbar-thumb { background: rgba(255,255,255,0.1); border-radius: 4px; }
+</style>
+</head>
+<body>
+
+<!-- HEADER -->
+<div class="relative-z header">
+  <div class="header-title">Net of Mathematical Shape</div>
+  <div class="header-sub">Designed by: Bikash Bhusal</div>
+</div>
+
+<!-- NAVIGATION TABS -->
+<div class="nav-bar relative-z">
+  <button class="tab-btn active" data-shape="cube">घन</button>
+  <button class="tab-btn" data-shape="fourwall">चार भित्ता</button>
+  <button class="tab-btn" data-shape="hexahedron">षड्मुख</button>
+  <button class="tab-btn" data-shape="pyramid">पिरामिड</button>
+  <button class="tab-btn" data-shape="cone">सोली</button>
+  <button class="tab-btn" data-shape="cylinder">बेलना</button>
+</div>
+
+<!-- MAIN LAYOUT -->
+<div class="main-layout">
+
+  <!-- LEFT PANEL: 3D Viewer -->
+  <div class="glass-card left-panel" style="position:relative;">
+    <div class="transition-overlay" id="transition-overlay">
+      <div class="spinner"></div>
+    </div>
+
+    <div class="panel-header">
+      <span class="panel-label">3D Visualization</span>
+      <span class="live-badge">
+        <span class="live-dot"></span>
+        Interactive
+      </span>
+    </div>
+
+    <div id="canvas-container">
+      <div class="shape-overlay" id="shape-overlay">घन · Cube</div>
+    </div>
+
+    <div class="controls">
+      <button class="ctrl-btn unfold" id="btn-unfold" onclick="startUnfold()">
+        <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M21 16V8a2 2 0 0 0-1-1.73l-7-4a2 2 0 0 0-2 0l-7 4A2 2 0 0 0 3 8v8a2 2 0 0 0 1 1.73l7 4a2 2 0 0 0 2 0l7-4A2 2 0 0 0 21 16z"/></svg>
+        आकृति खोल्नुहोस्
+      </button>
+      <button class="ctrl-btn fold" id="btn-fold" onclick="startFold()">
+        <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><polyline points="15 3 21 3 21 9"/><polyline points="9 21 3 21 3 15"/><line x1="21" y1="3" x2="14" y2="10"/><line x1="3" y1="21" x2="10" y2="14"/></svg>
+        आकृति बन्द गर्नुहोस्
+      </button>
+      <button class="ctrl-btn reset" onclick="resetCamera()">
+        <svg width="13" height="13" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><polyline points="1 4 1 10 7 10"/><path d="M3.51 15a9 9 0 1 0 .49-3.1"/></svg>
+        Reset
+      </button>
+    </div>
+  </div>
+
+  <!-- RIGHT PANEL -->
+  <div class="right-panel">
+
+    <!-- Info Card -->
+    <div class="glass-card">
+      <div class="info-header">
+        <div class="shape-title" id="shape-title">घन</div>
+        <div class="shape-subtitle" id="shape-subtitle">CUBE · 3D Solid Shape</div>
+      </div>
+
+      <div class="stat-grid">
+        <div class="stat-card faces">
+          <div class="stat-icon">⬡</div>
+          <div class="stat-value" id="stat-faces">6</div>
+          <div class="stat-label">Faces</div>
+        </div>
+        <div class="stat-card edges">
+          <div class="stat-icon">⟋</div>
+          <div class="stat-value" id="stat-edges">12</div>
+          <div class="stat-label">Edges</div>
+        </div>
+        <div class="stat-card vertices">
+          <div class="stat-icon">◆</div>
+          <div class="stat-value" id="stat-vertices">8</div>
+          <div class="stat-label">Vertices</div>
+        </div>
+      </div>
+
+      <div class="formula-card">
+        <div class="formula-title">Surface Area Formula</div>
+        <div class="formula-text" id="formula-text">
+          <span>SA = 6a²</span> where a = side length
+        </div>
+      </div>
+    </div>
+
+    <!-- Net Card -->
+    <div class="glass-card net-card">
+      <div class="net-header">
+        <span class="net-label">2-D Net Diagram</span>
+        <span style="font-size:0.65rem;color:var(--text-secondary);">Hover to highlight</span>
+      </div>
+
+      <div class="net-container">
+        <svg id="net-svg" viewBox="0 0 280 220" xmlns="http://www.w3.org/2000/svg" width="280" height="220">
+          <!-- Cube net rendered by JS -->
+        </svg>
+      </div>
+
+      <div class="fold-indicator">
+        <div class="fold-line"></div>
+        <span>— — fold lines</span>
+        <div class="fold-line"></div>
+      </div>
+    </div>
+
+  </div>
+</div>
+
+<script>
+// ============================================================
+// SHAPE DATA
+// ============================================================
+const SHAPES = {
+  cube: {
+    nameNepali: 'घन',
+    nameEnglish: 'Cube',
+    subtitle: 'CUBE · 3D Solid Shape',
+    overlay: 'घन · Cube',
+    faces: 6, edges: 12, vertices: 8,
+    formula: '<span>SA = 6a²</span> | <span>V = a³</span> where a = side',
+    color: 0x3b82f6,
+    net: drawCubeNet
+  },
+  fourwall: {
+    nameNepali: 'चार भित्ता',
+    nameEnglish: 'Four Walls Area',
+    subtitle: 'CUBOID · Rectangular Prism',
+    overlay: 'चार भित्ता · Cuboid',
+    faces: 6, edges: 12, vertices: 8,
+    formula: '<span>4-Wall Area = 2h(l+b)</span> | <span>V = l×b×h</span>',
+    color: 0x06b6d4,
+    net: drawCuboidNet
+  },
+  hexahedron: {
+    nameNepali: 'षड्मुख',
+    nameEnglish: 'Hexahedron',
+    subtitle: 'HEXAHEDRON · 6-Faced Solid',
+    overlay: 'षड्मुख · Hexahedron',
+    faces: 6, edges: 12, vertices: 8,
+    formula: '<span>SA = 6a²</span> | <span>V = a³</span>',
+    color: 0xa855f7,
+    net: drawHexahedronNet
+  },
+  pyramid: {
+    nameNepali: 'वर्गाकार पिरामिड',
+    nameEnglish: 'Square Pyramid',
+    subtitle: 'PYRAMID · 5-Faced Solid',
+    overlay: 'पिरामिड · Pyramid',
+    faces: 5, edges: 8, vertices: 5,
+    formula: '<span>SA = a² + 2al</span> | <span>V = a²h/3</span>',
+    color: 0xf97316,
+    net: drawPyramidNet
+  },
+  cone: {
+    nameNepali: 'सोली (शंकु)',
+    nameEnglish: 'Cone',
+    subtitle: 'CONE · Circular Solid',
+    overlay: 'सोली · Cone',
+    faces: 2, edges: 1, vertices: 1,
+    formula: '<span>SA = πr(r+l)</span> | <span>V = πr²h/3</span>',
+    color: 0x10b981,
+    net: drawConeNet
+  },
+  cylinder: {
+    nameNepali: 'बेलना',
+    nameEnglish: 'Cylinder',
+    subtitle: 'CYLINDER · Circular Prism',
+    overlay: 'बेलना · Cylinder',
+    faces: 3, edges: 2, vertices: 0,
+    formula: '<span>SA = 2πr(r+h)</span> | <span>V = πr²h</span>',
+    color: 0xf59e0b,
+    net: drawCylinderNet
+  }
+};
+
+// ============================================================
+// THREE.JS SETUP
+// ============================================================
+let scene, camera, renderer, currentMesh, animationId;
+let isDragging = false, prevMouse = {x:0, y:0};
+let targetRotX = 0.3, targetRotY = 0.5;
+let currentRotX = 0.3, currentRotY = 0.5;
+let autoRotate = true;
+let unfoldProgress = 0, unfoldDirection = 0;
+let unfoldParts = [];
+
+function initThree() {
+  const container = document.getElementById('canvas-container');
+  scene = new THREE.Scene();
+  scene.background = null;
+
+  camera = new THREE.PerspectiveCamera(45, container.clientWidth / container.clientHeight, 0.1, 100);
+  camera.position.set(0, 0, 5);
+
+  renderer = new THREE.WebGLRenderer({ antialias: true, alpha: true });
+  renderer.setSize(container.clientWidth, container.clientHeight);
+  renderer.setPixelRatio(window.devicePixelRatio);
+  renderer.shadowMap.enabled = true;
+  container.appendChild(renderer.domElement);
+
+  // Lights
+  const ambient = new THREE.AmbientLight(0xffffff, 0.5);
+  scene.add(ambient);
+
+  const dirLight = new THREE.DirectionalLight(0xffffff, 0.8);
+  dirLight.position.set(5, 8, 5);
+  dirLight.castShadow = true;
+  scene.add(dirLight);
+
+  const dirLight2 = new THREE.DirectionalLight(0x93c5fd, 0.3);
+  dirLight2.position.set(-5, -3, -5);
+  scene.add(dirLight2);
+
+  const pointLight = new THREE.PointLight(0xf97316, 0.4, 20);
+  pointLight.position.set(-3, -3, 3);
+  scene.add(pointLight);
+
+  // Mouse controls
+  container.addEventListener('mousedown', e => { isDragging = true; autoRotate = false; prevMouse = {x: e.clientX, y: e.clientY}; });
+  window.addEventListener('mouseup', () => { isDragging = false; setTimeout(() => autoRotate = true, 2000); });
+  window.addEventListener('mousemove', e => {
+    if (!isDragging) return;
+    const dx = e.clientX - prevMouse.x;
+    const dy = e.clientY - prevMouse.y;
+    targetRotY += dx * 0.01;
+    targetRotX += dy * 0.01;
+    prevMouse = {x: e.clientX, y: e.clientY};
+  });
+
+  // Touch controls
+  container.addEventListener('touchstart', e => { isDragging = true; autoRotate = false; prevMouse = {x: e.touches[0].clientX, y: e.touches[0].clientY}; });
+  window.addEventListener('touchend', () => { isDragging = false; setTimeout(() => autoRotate = true, 2000); });
+  window.addEventListener('touchmove', e => {
+    if (!isDragging) return;
+    const dx = e.touches[0].clientX - prevMouse.x;
+    const dy = e.touches[0].clientY - prevMouse.y;
+    targetRotY += dx * 0.01;
+    targetRotX += dy * 0.01;
+    prevMouse = {x: e.touches[0].clientX, y: e.touches[0].clientY};
+  });
+
+  // Wheel zoom
+  container.addEventListener('wheel', e => {
+    camera.position.z = Math.max(2, Math.min(10, camera.position.z + e.deltaY * 0.01));
+  });
+
+  loadShape('cube');
+  animate();
+}
+
+function animate() {
+  animationId = requestAnimationFrame(animate);
+
+  if (autoRotate) {
+    targetRotY += 0.004;
+  }
+
+  currentRotX += (targetRotX - currentRotX) * 0.08;
+  currentRotY += (targetRotY - currentRotY) * 0.08;
+
+  if (currentMesh) {
+    currentMesh.rotation.x = currentRotX;
+    currentMesh.rotation.y = currentRotY;
+  }
+
+  // Handle unfold animation
+  if (unfoldDirection !== 0) {
+    unfoldProgress += unfoldDirection * 0.018;
+    if (unfoldProgress >= 1) { unfoldProgress = 1; unfoldDirection = 0; }
+    if (unfoldProgress <= 0) { unfoldProgress = 0; unfoldDirection = 0; }
+    applyUnfoldProgress(unfoldProgress);
+  }
+
+  renderer.render(scene, camera);
+}
+
+function createMaterial(color) {
+  return new THREE.MeshPhongMaterial({
+    color: color,
+    transparent: true,
+    opacity: 0.85,
+    shininess: 80,
+    specular: new THREE.Color(0xffffff),
+    wireframe: false,
+    side: THREE.DoubleSide
+  });
+}
+
+function createEdges(geometry, color) {
+  const edges = new THREE.EdgesGeometry(geometry);
+  const lineMat = new THREE.LineBasicMaterial({ color: 0xffffff, transparent: true, opacity: 0.3 });
+  return new THREE.LineSegments(edges, lineMat);
+}
+
+let currentShapeKey = 'cube';
+
+function loadShape(key) {
+  currentShapeKey = key;
+  const data = SHAPES[key];
+
+  // Remove old mesh
+  if (currentMesh) {
+    scene.remove(currentMesh);
+    currentMesh.traverse(c => { if (c.geometry) c.geometry.dispose(); if (c.material) c.material.dispose(); });
+  }
+  unfoldParts = [];
+  unfoldProgress = 0;
+  unfoldDirection = 0;
+
+  const group = new THREE.Group();
+  let geo, mat;
+
+  mat = createMaterial(data.color);
+
+  switch(key) {
+    case 'cube':
+    case 'hexahedron': {
+      geo = new THREE.BoxGeometry(2, 2, 2);
+      const mesh = new THREE.Mesh(geo, mat.clone());
+      mesh.receiveShadow = true; mesh.castShadow = true;
+      group.add(mesh);
+      group.add(createEdges(geo, data.color));
+      // Unfold parts: 6 faces
+      buildBoxUnfoldParts(group, data.color);
+      break;
+    }
+    case 'fourwall': {
+      geo = new THREE.BoxGeometry(2.5, 1.5, 1.5);
+      const mesh = new THREE.Mesh(geo, mat.clone());
+      group.add(mesh);
+      group.add(createEdges(geo, data.color));
+      buildBoxUnfoldParts(group, data.color, 2.5, 1.5, 1.5);
+      break;
+    }
+    case 'pyramid': {
+      geo = new THREE.ConeGeometry(1.3, 2.2, 4);
+      const mesh = new THREE.Mesh(geo, mat.clone());
+      group.add(mesh);
+      group.add(createEdges(geo, data.color));
+      buildPyramidUnfoldParts(group, data.color);
+      break;
+    }
+    case 'cone': {
+      geo = new THREE.ConeGeometry(1.2, 2.5, 32);
+      const mesh = new THREE.Mesh(geo, mat.clone());
+      group.add(mesh);
+      group.add(createEdges(geo, data.color));
+      break;
+    }
+    case 'cylinder': {
+      geo = new THREE.CylinderGeometry(1, 1, 2.5, 32);
+      const mesh = new THREE.Mesh(geo, mat.clone());
+      group.add(mesh);
+      group.add(createEdges(geo, data.color));
+      break;
+    }
+  }
+
+  scene.add(group);
+  currentMesh = group;
+
+  targetRotX = 0.3;
+  targetRotY = 0.5;
+}
+
+function buildBoxUnfoldParts(group, color, w=2, h=2, d=2) {
+  // We'll just store the main mesh for simple unfold effect
+  unfoldParts = [];
+  const hw = w/2, hh = h/2, hd = d/2;
+  const faces = [
+    { pos: [0, hh, 0],   rot: [-Math.PI/2, 0, 0], w: w, h: d },   // top
+    { pos: [0, -hh, 0],  rot: [Math.PI/2,  0, 0],  w: w, h: d },   // bottom
+    { pos: [0, 0, hd],   rot: [0, 0, 0],            w: w, h: h },   // front
+    { pos: [0, 0, -hd],  rot: [0, Math.PI, 0],      w: w, h: h },   // back
+    { pos: [hw, 0, 0],   rot: [0, Math.PI/2, 0],   w: d, h: h },   // right
+    { pos: [-hw, 0, 0],  rot: [0, -Math.PI/2, 0],  w: d, h: h },   // left
+  ];
+
+  faces.forEach((f, i) => {
+    const g = new THREE.PlaneGeometry(f.w, f.h);
+    const m = new THREE.MeshPhongMaterial({ color, transparent: true, opacity: 0.85, side: THREE.DoubleSide, shininess: 80 });
+    const mesh = new THREE.Mesh(g, m);
+    mesh.position.set(...f.pos);
+    mesh.rotation.set(...f.rot);
+    mesh.userData.basePos = [...f.pos];
+    mesh.userData.baseRot = [...f.rot];
+    unfoldParts.push(mesh);
+  });
+}
+
+function buildPyramidUnfoldParts(group, color) {
+  unfoldParts = [];
+}
+
+function applyUnfoldProgress(t) {
+  if (!unfoldParts.length || !currentMesh) return;
+  // Simple "explode" unfold effect
+  const offsets = [
+    [0, t*2.5, 0],
+    [0, -t*2.5, 0],
+    [0, 0, t*2.5],
+    [0, 0, -t*2.5],
+    [t*2.5, 0, 0],
+    [-t*2.5, 0, 0],
+  ];
+  unfoldParts.forEach((mesh, i) => {
+    if (!mesh.userData.basePos) return;
+    const base = mesh.userData.basePos;
+    const off = offsets[i] || [0,0,0];
+    mesh.position.set(base[0]+off[0], base[1]+off[1], base[2]+off[2]);
+  });
+}
+
+function startUnfold() {
+  if (!unfoldParts.length) {
+    // For shapes without unfold parts, just animate a scatter effect
+    unfoldDirection = 1;
+    return;
+  }
+  // Add parts to scene
+  unfoldParts.forEach(p => { if (!currentMesh.children.includes(p)) currentMesh.add(p); });
+  // Hide main solid
+  currentMesh.children.forEach(c => {
+    if (!unfoldParts.includes(c)) c.visible = false;
+  });
+  unfoldParts.forEach(p => p.visible = true);
+  unfoldDirection = 1;
+}
+
+function startFold() {
+  unfoldDirection = -1;
+  if (!unfoldParts.length) return;
+  // Show main solid when folded
+  if (unfoldProgress <= 0.05) {
+    currentMesh.children.forEach(c => { c.visible = true; });
+    unfoldParts.forEach(p => p.visible = false);
+  }
+}
+
+// Watch progress to restore
+const _origAnimate = animate;
+
+function resetCamera() {
+  targetRotX = 0.3;
+  targetRotY = 0.5;
+  camera.position.z = 5;
+  unfoldProgress = 0;
+  unfoldDirection = 0;
+  if (unfoldParts.length) {
+    unfoldParts.forEach(p => { applyUnfoldProgress(0); p.visible = false; });
+  }
+  currentMesh.children.forEach(c => { c.visible = true; });
+}
+
+// ============================================================
+// SVG NET DRAWINGS
+// ============================================================
+function drawCubeNet(svg) {
+  const s = 55, ox = 30, oy = 30;
+  svg.innerHTML = '';
+  // Cross shape: T-shaped net
+  const faces = [
+    [ox + s, oy],              // top
+    [ox, oy + s],              // left
+    [ox + s, oy + s],          // center
+    [ox + 2*s, oy + s],        // right
+    [ox + s, oy + 2*s],        // bottom-center
+    [ox + s, oy + 3*s],        // bottom-bottom
+  ];
+
+  faces.forEach((f, i) => {
+    const rect = document.createElementNS('http://www.w3.org/2000/svg', 'rect');
+    rect.setAttribute('x', f[0]); rect.setAttribute('y', f[1]);
+    rect.setAttribute('width', s); rect.setAttribute('height', s);
+    rect.setAttribute('class', 'net-face');
+    svg.appendChild(rect);
+
+    const txt = document.createElementNS('http://www.w3.org/2000/svg', 'text');
+    txt.setAttribute('x', f[0] + s/2); txt.setAttribute('y', f[1] + s/2 + 3);
+    txt.setAttribute('text-anchor', 'middle');
+    txt.setAttribute('class', 'net-label-text');
+    txt.textContent = i+1;
+    svg.appendChild(txt);
+  });
+
+  // Fold lines between faces
+  const folds = [
+    [ox+s, oy+s, ox+2*s, oy+s],
+    [ox+s, oy+s, ox+s, oy+2*s],
+    [ox+2*s, oy+s, ox+2*s, oy+2*s],
+    [ox+s, oy+2*s, ox+2*s, oy+2*s],
+    [ox+s, oy+2*s, ox+s, oy+3*s],
+    [ox+s, oy+3*s, ox+2*s, oy+3*s],
+  ];
+  drawFoldLines(svg, folds);
+  addArrows(svg, faces.slice(0,3).map(f => [f[0]+s/2, f[1]+s-5]));
+}
+
+function drawCuboidNet(svg) {
+  svg.innerHTML = '';
+  const lw = 70, lh = 45, ld = 30;
+  const ox = 15, oy = 20;
+  const rects = [
+    { x: ox+ld, y: oy, w: lw, h: ld },
+    { x: ox, y: oy+ld, w: ld, h: lh },
+    { x: ox+ld, y: oy+ld, w: lw, h: lh },
+    { x: ox+ld+lw, y: oy+ld, w: ld, h: lh },
+    { x: ox+ld+lw+ld, y: oy+ld, w: lw, h: lh },
+    { x: ox+ld, y: oy+ld+lh, w: lw, h: ld },
+  ];
+  const labels = ['Top','Left','Front','Right','Back','Bottom'];
+  rects.forEach((r, i) => {
+    const rect = document.createElementNS('http://www.w3.org/2000/svg', 'rect');
+    Object.entries(r).forEach(([k,v]) => rect.setAttribute(k, v));
+    rect.setAttribute('class', 'net-face');
+    svg.appendChild(rect);
+    const txt = document.createElementNS('http://www.w3.org/2000/svg', 'text');
+    txt.setAttribute('x', r.x + r.w/2); txt.setAttribute('y', r.y + r.h/2 + 3);
+    txt.setAttribute('text-anchor', 'middle');
+    txt.setAttribute('class', 'net-label-text');
+    txt.textContent = labels[i];
+    svg.appendChild(txt);
+  });
+}
+
+function drawHexahedronNet(svg) {
+  svg.innerHTML = '';
+  const s = 50, ox = 40, oy = 20;
+  const positions = [
+    [ox+s, oy], [ox, oy+s], [ox+s, oy+s],
+    [ox+2*s, oy+s], [ox+s, oy+2*s], [ox+s, oy+3*s]
+  ];
+  const hues = ['rgba(168,85,247,0.12)', 'rgba(139,92,246,0.1)', 'rgba(168,85,247,0.15)',
+    'rgba(139,92,246,0.12)', 'rgba(168,85,247,0.1)', 'rgba(139,92,246,0.15)'];
+  positions.forEach((p, i) => {
+    const rect = document.createElementNS('http://www.w3.org/2000/svg', 'rect');
+    rect.setAttribute('x', p[0]); rect.setAttribute('y', p[1]);
+    rect.setAttribute('width', s); rect.setAttribute('height', s);
+    rect.setAttribute('fill', hues[i]);
+    rect.setAttribute('stroke', '#a855f7');
+    rect.setAttribute('stroke-width', '1.5');
+    rect.setAttribute('rx', '2');
+    rect.setAttribute('style', 'transition:all 0.3s;cursor:pointer;');
+    svg.appendChild(rect);
+    const txt = document.createElementNS('http://www.w3.org/2000/svg', 'text');
+    txt.setAttribute('x', p[0]+s/2); txt.setAttribute('y', p[1]+s/2+3);
+    txt.setAttribute('text-anchor', 'middle');
+    txt.setAttribute('fill', 'rgba(192,132,252,0.8)');
+    txt.setAttribute('font-size', '9');
+    txt.setAttribute('font-family', 'Space Grotesk');
+    txt.textContent = 'F'+(i+1);
+    svg.appendChild(txt);
+  });
+}
+
+function drawPyramidNet(svg) {
+  svg.innerHTML = '';
+  const cx = 140, cy = 120;
+  const base = 80;
+  const h = 70;
+
+  // Base square
+  const bx = cx - base/2, by = cy - base/2;
+  const baseRect = document.createElementNS('http://www.w3.org/2000/svg', 'rect');
+  baseRect.setAttribute('x', bx); baseRect.setAttribute('y', by);
+  baseRect.setAttribute('width', base); baseRect.setAttribute('height', base);
+  baseRect.setAttribute('class', 'net-face');
+  svg.appendChild(baseRect);
+
+  const baseTxt = document.createElementNS('http://www.w3.org/2000/svg', 'text');
+  baseTxt.setAttribute('x', cx); baseTxt.setAttribute('y', cy+4);
+  baseTxt.setAttribute('text-anchor', 'middle');
+  baseTxt.setAttribute('class', 'net-label-text');
+  baseTxt.textContent = 'Base';
+  svg.appendChild(baseTxt);
+
+  // 4 triangular faces
+  const triangles = [
+    [[bx, by], [bx+base, by], [cx, by-h]],
+    [[bx+base, by], [bx+base, by+base], [cx+h, cy]],
+    [[bx, by+base], [bx+base, by+base], [cx, by+base+h]],
+    [[bx, by], [bx, by+base], [cx-h, cy]],
+  ];
+  const triLabels = ['△1','△2','△3','△4'];
+
+  triangles.forEach((tri, i) => {
+    const poly = document.createElementNS('http://www.w3.org/2000/svg', 'polygon');
+    poly.setAttribute('points', tri.map(p=>p.join(',')).join(' '));
+    poly.setAttribute('class', 'net-face');
+    svg.appendChild(poly);
+
+    const centroid = [
+      (tri[0][0]+tri[1][0]+tri[2][0])/3,
+      (tri[0][1]+tri[1][1]+tri[2][1])/3
+    ];
+    const txt = document.createElementNS('http://www.w3.org/2000/svg', 'text');
+    txt.setAttribute('x', centroid[0]); txt.setAttribute('y', centroid[1]+3);
+    txt.setAttribute('text-anchor', 'middle');
+    txt.setAttribute('class', 'net-label-text');
+    txt.textContent = triLabels[i];
+    svg.appendChild(txt);
+  });
+
+  // Fold arrows
+  const midpoints = [
+    [cx, by], [bx+base, cy], [cx, by+base], [bx, cy]
+  ];
+  midpoints.forEach(mp => {
+    const circle = document.createElementNS('http://www.w3.org/2000/svg', 'circle');
+    circle.setAttribute('cx', mp[0]); circle.setAttribute('cy', mp[1]);
+    circle.setAttribute('r', '3');
+    circle.setAttribute('fill', 'rgba(249,115,22,0.5)');
+    svg.appendChild(circle);
+  });
+}
+
+function drawConeNet(svg) {
+  svg.innerHTML = '';
+  const cx = 140, cy = 140;
+  const r = 100, innerR = 35;
+
+  // Sector (lateral surface)
+  const startAngle = -0.8, endAngle = Math.PI + 0.8;
+  const path = document.createElementNS('http://www.w3.org/2000/svg', 'path');
+  const x1 = cx + r * Math.cos(startAngle);
+  const y1 = cy + r * Math.sin(startAngle);
+  const x2 = cx + r * Math.cos(endAngle);
+  const y2 = cy + r * Math.sin(endAngle);
+  path.setAttribute('d', `M ${cx} ${cy} L ${x1} ${y1} A ${r} ${r} 0 1 1 ${x2} ${y2} Z`);
+  path.setAttribute('class', 'net-face');
+  svg.appendChild(path);
+
+  const sectorTxt = document.createElementNS('http://www.w3.org/2000/svg', 'text');
+  sectorTxt.setAttribute('x', cx); sectorTxt.setAttribute('y', cy - 30);
+  sectorTxt.setAttribute('text-anchor', 'middle');
+  sectorTxt.setAttribute('class', 'net-label-text');
+  sectorTxt.textContent = 'Lateral Surface';
+  svg.appendChild(sectorTxt);
+
+  // Base circle
+  const circle = document.createElementNS('http://www.w3.org/2000/svg', 'circle');
+  circle.setAttribute('cx', cx); circle.setAttribute('cy', cy + 40);
+  circle.setAttribute('r', innerR);
+  circle.setAttribute('class', 'net-face');
+  svg.appendChild(circle);
+
+  const circleTxt = document.createElementNS('http://www.w3.org/2000/svg', 'text');
+  circleTxt.setAttribute('x', cx); circleTxt.setAttribute('y', cy + 44);
+  circleTxt.setAttribute('text-anchor', 'middle');
+  circleTxt.setAttribute('class', 'net-label-text');
+  circleTxt.textContent = 'Base';
+  svg.appendChild(circleTxt);
+
+  // Slant lines
+  const sl1 = document.createElementNS('http://www.w3.org/2000/svg', 'line');
+  sl1.setAttribute('x1', cx); sl1.setAttribute('y1', cy);
+  sl1.setAttribute('x2', x1); sl1.setAttribute('y2', y1);
+  sl1.setAttribute('stroke', 'rgba(249,115,22,0.3)'); sl1.setAttribute('stroke-dasharray', '4,3'); sl1.setAttribute('stroke-width', '1');
+  svg.appendChild(sl1);
+}
+
+function drawCylinderNet(svg) {
+  svg.innerHTML = '';
+  const r = 32, bw = 130, bh = 80;
+  const ox = 75, oy = 20;
+
+  // Top circle
+  const topCircle = document.createElementNS('http://www.w3.org/2000/svg', 'circle');
+  topCircle.setAttribute('cx', ox + bw/2); topCircle.setAttribute('cy', oy + r);
+  topCircle.setAttribute('r', r);
+  topCircle.setAttribute('class', 'net-face');
+  svg.appendChild(topCircle);
+  addLabel(svg, ox+bw/2, oy+r+3, 'Top');
+
+  // Rectangle (lateral)
+  const rect = document.createElementNS('http://www.w3.org/2000/svg', 'rect');
+  rect.setAttribute('x', ox); rect.setAttribute('y', oy + 2*r + 8);
+  rect.setAttribute('width', bw); rect.setAttribute('height', bh);
+  rect.setAttribute('class', 'net-face');
+  svg.appendChild(rect);
+  addLabel(svg, ox+bw/2, oy+2*r+8+bh/2+3, 'Lateral');
+
+  // Dimension labels
+  const dimLine = document.createElementNS('http://www.w3.org/2000/svg', 'text');
+  dimLine.setAttribute('x', ox + bw + 8); dimLine.setAttribute('y', oy+2*r+8+bh/2+3);
+  dimLine.setAttribute('class', 'net-label-text');
+  dimLine.setAttribute('fill', 'rgba(249,115,22,0.5)');
+  dimLine.textContent = 'h';
+  svg.appendChild(dimLine);
+
+  // Bottom circle
+  const botCircle = document.createElementNS('http://www.w3.org/2000/svg', 'circle');
+  botCircle.setAttribute('cx', ox + bw/2); botCircle.setAttribute('cy', oy + 2*r + 8 + bh + r + 8);
+  botCircle.setAttribute('r', r);
+  botCircle.setAttribute('class', 'net-face');
+  svg.appendChild(botCircle);
+  addLabel(svg, ox+bw/2, oy+2*r+8+bh+r+8+3, 'Bottom');
+
+  // Dashed connection lines
+  const dash1 = document.createElementNS('http://www.w3.org/2000/svg', 'line');
+  dash1.setAttribute('x1', ox); dash1.setAttribute('y1', oy + 2*r + 8);
+  dash1.setAttribute('x2', ox); dash1.setAttribute('y2', oy + 2*r + 8 + bh);
+  dash1.setAttribute('stroke', 'rgba(249,115,22,0.3)'); dash1.setAttribute('stroke-dasharray','4,3'); dash1.setAttribute('stroke-width','1');
+  svg.appendChild(dash1);
+}
+
+function addLabel(svg, x, y, text) {
+  const txt = document.createElementNS('http://www.w3.org/2000/svg', 'text');
+  txt.setAttribute('x', x); txt.setAttribute('y', y);
+  txt.setAttribute('text-anchor', 'middle');
+  txt.setAttribute('class', 'net-label-text');
+  txt.textContent = text;
+  svg.appendChild(txt);
+}
+
+function drawFoldLines(svg, lines) {
+  lines.forEach(l => {
+    const line = document.createElementNS('http://www.w3.org/2000/svg', 'line');
+    line.setAttribute('x1', l[0]); line.setAttribute('y1', l[1]);
+    line.setAttribute('x2', l[2]); line.setAttribute('y2', l[3]);
+    line.setAttribute('class', 'net-fold');
+    svg.appendChild(line);
+  });
+}
+
+function addArrows(svg, points) {
+  points.forEach(p => {
+    const arrow = document.createElementNS('http://www.w3.org/2000/svg', 'polygon');
+    arrow.setAttribute('points', `${p[0]},${p[1]} ${p[0]-4},${p[1]+7} ${p[0]+4},${p[1]+7}`);
+    arrow.setAttribute('fill', 'rgba(249,115,22,0.5)');
+    svg.appendChild(arrow);
+  });
+}
+
+// ============================================================
+// UI STATE MANAGEMENT
+// ============================================================
+function animateCounter(element, target, duration=600) {
+  const start = parseInt(element.textContent) || 0;
+  const startTime = performance.now();
+  function update(now) {
+    const elapsed = now - startTime;
+    const progress = Math.min(elapsed / duration, 1);
+    const ease = 1 - Math.pow(1 - progress, 3);
+    element.textContent = Math.round(start + (target - start) * ease);
+    if (progress < 1) requestAnimationFrame(update);
+  }
+  requestAnimationFrame(update);
+}
+
+function updateUI(key) {
+  const data = SHAPES[key];
+  const overlay = document.getElementById('transition-overlay');
+
+  // Show transition
+  overlay.classList.add('show');
+
+  setTimeout(() => {
+    // Update shape title
+    document.getElementById('shape-title').textContent = data.nameNepali;
+    document.getElementById('shape-subtitle').textContent = data.subtitle;
+    document.getElementById('shape-overlay').textContent = data.overlay;
+    document.getElementById('formula-text').innerHTML = data.formula;
+
+    // Animate stat counters
+    animateCounter(document.getElementById('stat-faces'), data.faces);
+    animateCounter(document.getElementById('stat-edges'), data.edges);
+    animateCounter(document.getElementById('stat-vertices'), data.vertices);
+
+    // Draw net
+    const svg = document.getElementById('net-svg');
+    svg.style.opacity = '0';
+    data.net(svg);
+    setTimeout(() => { svg.style.opacity = '1'; }, 100);
+
+    // Load 3D shape
+    loadShape(key);
+
+    overlay.classList.remove('show');
+  }, 300);
+}
+
+// Tab click handlers
+document.querySelectorAll('.tab-btn').forEach(btn => {
+  btn.addEventListener('click', function() {
+    document.querySelectorAll('.tab-btn').forEach(b => b.classList.remove('active'));
+    this.classList.add('active');
+    updateUI(this.dataset.shape);
+  });
+});
+
+// ============================================================
+// INIT
+// ============================================================
+window.addEventListener('load', () => {
+  initThree();
+  // Draw initial cube net
+  drawCubeNet(document.getElementById('net-svg'));
+});
+
+window.addEventListener('resize', () => {
+  const container = document.getElementById('canvas-container');
+  if (camera && renderer) {
+    camera.aspect = container.clientWidth / container.clientHeight;
+    camera.updateProjectionMatrix();
+    renderer.setSize(container.clientWidth, container.clientHeight);
+  }
+});
+</script>
+</body>
+</html>
